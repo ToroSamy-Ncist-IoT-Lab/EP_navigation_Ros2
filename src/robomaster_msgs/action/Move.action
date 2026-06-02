@@ -1,0 +1,8 @@
+float32 x
+float32 y
+float32 theta
+float32 linear_speed 0.5
+float32 angular_speed 0.5236
+---
+---
+float32 progress

@@ -1,0 +1,27 @@
+robot_radius: 0.22
+inflation_radius: 0.35
+cost_scaling_factor: 3.0
+
+obstacle_layer:
+  enabled: true
+  obstacle_range: 3.0
+  raytrace_range: 3.5
+  track_unknown_space: true
+  combination_method: 1
+  observation_sources: scan
+  scan:
+    topic: /scan
+    sensor_frame: laser_link
+    data_type: LaserScan
+    marking: true
+    clearing: true
+    expected_update_rate: 0.0
+
+inflation_layer:
+  enabled: true
+
+static_layer:
+  enabled: true
+  map_subscribe_transient_local: true
+
+always_send_full_costmap: true

@@ -1,0 +1,58 @@
+from typing import Any, Optional
+import time
+import signal
+
+import rclpy
+import rclpy.executors
+import rclpy.logging
+
+from robomaster_ros.client import RoboMasterROS
+
+
+def main(args: Any = None) -> None:
+    rclpy.init(args=args)
+    executor = rclpy.executors.MultiThreadedExecutor()
+    should_reconnect = True
+    running = True
+
+    node: Optional[RoboMasterROS] = None
+
+    def shutdown(sig, _):
+        nonlocal should_reconnect
+        nonlocal running
+        running = False
+        if not node:
+            raise KeyboardInterrupt
+
+    signal.signal(signal.SIGINT, shutdown)
+
+    while should_reconnect and rclpy.ok() and running:
+        try:
+            node = RoboMasterROS(executor=executor)
+        except KeyboardInterrupt:
+            break
+        should_reconnect = node.reconnect
+        if not node.disconnection.done():
+            try:
+                while rclpy.ok() and not node.disconnection.done() and running:
+                    rclpy.spin_until_future_complete(
+                        node, node.disconnection, executor=executor, timeout_sec=1.0)
+            except KeyboardInterrupt:
+                running = False
+                break
+            except rclpy._rclpy_pybind11.RCLError:
+                running = False
+                break
+        node.stop_heartbeat_check()
+        if rclpy.ok():
+            node.abort()
+            rclpy.spin_once(node, executor=executor, timeout_sec=0.1)
+        if rclpy.ok():
+            node.stop()
+            rclpy.spin_once(node, executor=executor, timeout_sec=0.1)
+        node.destroy_node()
+        node = None
+        time.sleep(0.1)
+    rclpy.try_shutdown()
+    if node:
+        node.destroy_node()
