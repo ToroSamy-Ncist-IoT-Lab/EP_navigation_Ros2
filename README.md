@@ -2,6 +2,8 @@
 
 基于 ROS 2 Humble 的 RoboMaster EP + RPLIDAR A2 建图、定位、导航工作空间。
 
+> **当前状态：** SDK 原始数据诊断完成，chassis.py 已完成 3 处 odom 修正（坐标旋转、linear.y 禁用、gyro_z 符号），待实车验证 yaw 朝向。
+
 ## 系统需求
 
 | 项目 | 要求 |
@@ -30,6 +32,35 @@
 │  (建图 / 定位 / 导航) │
 └─────────────────────┘
 ```
+
+## 包结构
+
+| 包 | 构建类型 | 职责 |
+|---|---------|------|
+| `robomaster_msgs` | ament_cmake | 3 个自定义消息 + 1 个 Action |
+| `robomaster_description` | ament_cmake | EP 完整 URDF 模型 + 3D 网格 |
+| `robomaster_ros` | ament_python | 底盘驱动：chassis、battery、armor |
+| `ep_description` | ament_python | 静态 TF：base_link → laser_link |
+| `ep_navigation` | ament_python | slam_toolbox + Nav2 参数配置 |
+| `ep_bringup` | ament_python | 一键启动 launch 文件 |
+
+## TF 坐标系
+
+```
+map ──(slam_toolbox / Nav2)──► odom ──(chassis.py)──► base_link ──(静态)──► laser_link
+```
+
+## Odom 修正说明
+
+基于 SDK 原始数据诊断（见 `docs/`），chassis.py 已实施 3 处修正：
+
+| 函数 | 行号 | 修改 | 说明 |
+|------|------|------|------|
+| `updated_position` | 369-375 | 加入 `-yaw0` 坐标旋转 | EP 帧增量旋转到 ROS odom 帧 |
+| `updated_velocity` | 398-402 | `linear.y = 0` | 差速模式禁用横移 |
+| `updated_imu` | 424 | `gyro_z` 因子 `-1→+1` | 与 yaw 符号一致（逆时针为正） |
+
+**待验证：** yaw 朝向偏差（可能差 90° 或 180°），需实车测试后决定是否加偏置。
 
 ## 快速开始
 
@@ -86,6 +117,11 @@ source install/setup.bash
 
 ### 6. 运行
 
+```bash
+# 加载 ROS 环境
+source ~/R_v1.1/install/setup.bash
+```
+
 | 模式 | 命令 | 说明 |
 |------|------|------|
 | 键盘控制 | `ros2 launch ep_bringup teleop.launch.py` | USB 连接（默认 rndis） |
@@ -105,23 +141,6 @@ teleop_twist_keyboard 键位图:
    u=前+左  o=前+右  m=后+左  .=后+右
 ```
 
-## 包结构
-
-| 包 | 构建类型 | 职责 |
-|---|---------|------|
-| `robomaster_msgs` | ament_cmake | 3 个自定义消息 + 1 个 Action |
-| `robomaster_description` | ament_cmake | EP 完整 URDF 模型 + 3D 网格 |
-| `robomaster_ros` | ament_python | 底盘驱动：chassis、battery、armor |
-| `ep_description` | ament_python | 静态 TF：base_link → laser_link |
-| `ep_navigation` | ament_python | slam_toolbox + Nav2 参数配置 |
-| `ep_bringup` | ament_python | 一键启动 launch 文件 |
-
-## TF 坐标系
-
-```
-map ──(slam_toolbox / Nav2)──► odom ──(chassis.py)──► base_link ──(静态)──► laser_link
-```
-
 ## 安全参数
 
 | 参数 | 值 | 说明 |
@@ -134,8 +153,6 @@ map ──(slam_toolbox / Nav2)──► odom ──(chassis.py)──► base_l
 | 膨胀半径 | 0.35m | 障碍物安全距离 |
 
 ## 连接模式
-
-EP 支持三种连接方式：
 
 | 模式 | 参数 | 说明 |
 |------|------|------|

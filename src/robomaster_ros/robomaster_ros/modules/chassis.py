@@ -366,9 +366,13 @@ class Chassis(Module):
         if self.initial_position is None:
             self.initial_position = (msg[0], msg[1])
         position = self.odom_msg.pose.pose.position
-        x, y = position.x, position.y = (
-            msg[0] - self.initial_position[0],
-            -msg[1] + self.initial_position[1])
+        yaw0 = self.initial_yaw or 0.0
+        c = math.cos(-yaw0)
+        s = math.sin(-yaw0)
+        dx_ep = msg[0] - self.initial_position[0]
+        dy_ep = msg[1] - self.initial_position[1]
+        x = position.x = c * dx_ep - s * (-dy_ep)
+        y = position.y = s * dx_ep + c * (-dy_ep)
         if self.odom_twist_from_pose_diff:
             velocity = self.odom_msg.twist.twist.linear
             if self.position is None:
@@ -392,9 +396,10 @@ class Chassis(Module):
             return
         velocity = self.odom_msg.twist.twist.linear
         if self.odom_twist_in_odom:
-            (velocity.x, velocity.y) = (msg[0], -msg[1])
+            velocity.x = msg[0]
         else:
-            (velocity.x, velocity.y) = (msg[3], -msg[4])
+            velocity.x = msg[3]
+        velocity.y = 0.0
 
     def updated_attitude(self, msg: Tuple[float, float, float]) -> None:
         orientation = self.odom_msg.pose.pose.orientation
@@ -417,7 +422,7 @@ class Chassis(Module):
             f * G * value for value, f in zip(msg[:3], (1, -1, -1))]
         angular_speed = self.imu_msg.angular_velocity
         (angular_speed.x, angular_speed.y, angular_speed.z) = [
-            f * value for value, f in zip(msg[3:], (1, -1, -1))]
+            f * value for value, f in zip(msg[3:], (1, -1, 1))]
 
     def publish_state_estimation(self) -> None:
         stamp = self.clock.now().to_msg()

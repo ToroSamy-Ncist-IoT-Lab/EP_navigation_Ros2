@@ -111,6 +111,26 @@ teleop_twist_keyboard 键位图:
    u=前+左  o=前+右  m=后+左  .=后+右
 ```
 
+## Odom 修正（诊断后改动）
+
+### chassis.py 已修改 3 处
+
+| 函数 | 行号 | 修改 | 原因 |
+|------|------|------|------|
+| `updated_position` | 369-375 | 加入 `-yaw0` 坐标旋转 | EP 帧增量 → ROS 帧对齐启动朝向 |
+| `updated_velocity` | 398-402 | `linear.y = 0` | 差速车禁用横移 |
+| `updated_imu` | 424 | `gyro_z` 因子 `-1→+1` | 逆时针旋转时 gyro_z 为正 |
+
+### 待验证
+- yaw 朝向偏差（可能需加 π 或 π/2 偏置）
+- 实车启动后 `odom.pose.position` 应归零
+
+### SDK 原始数据结论（docs/ep_sdk_test_result_odom_diagnosis.md）
+- `sub_position` 在直行时 y 漂仅 1.8mm/6s，可靠
+- 后退时 y 漂由初始 yaw 偏角 +3.3° 导致，不是硬件问题
+- `sub_imu` gyro_z 逆时针为正，无符号错误
+- 不需要外置 IMU
+
 ## 重要约定
 
 - 所有 Python 节点使用 ROS 2 Humble / Python 3.10
@@ -124,6 +144,9 @@ teleop_twist_keyboard 键位图:
 - 默认连接模式改为 `rndis`（USB）
 
 ## 已知问题
+
+**Q: SD原始数据是否存在严重漂移？**
+A: 不存。 test_results.md 确认直行 y 漂仅 1.8mm，前进/后退/旋转自洽。诊断见 docs/。
 
 **Q: SDK 未安装**
 ```bash
