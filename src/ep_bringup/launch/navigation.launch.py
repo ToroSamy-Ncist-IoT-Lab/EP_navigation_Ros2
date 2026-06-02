@@ -37,11 +37,10 @@ def generate_launch_description():
             parameters=[{
                 'channel_type': 'serial',
                 'serial_port': '/dev/ttyUSB0',
-                'serial_baudrate': 115200,
+                'serial_baudrate': 256000,
                 'frame_id': 'laser_link',
                 'inverted': False,
                 'angle_compensate': True,
-                'scan_mode': 'Sensitivity',
             }],
         ),
 
@@ -63,5 +62,8 @@ def generate_launch_description():
             package='rviz2',
             executable='rviz2',
             output='screen',
+            arguments=['-d', os.path.join(
+                get_package_share_directory('ep_bringup'),
+                'config', 'navigation.rviz')],
         ),
     ])

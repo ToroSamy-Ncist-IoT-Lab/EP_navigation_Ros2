@@ -122,6 +122,8 @@ class Chassis(Module):
 
         self.position: Optional[Tuple[float, float]] = None
         self.yaw: Optional[float] = None
+        self.initial_position: Optional[Tuple[float, float]] = None
+        self.initial_yaw: Optional[float] = None
         self.odom_msg = nav_msgs.msg.Odometry()
         self.odom_msg.header.frame_id = self.odom_frame
         self.imu_msg = sensor_msgs.msg.Imu()
@@ -361,8 +363,12 @@ class Chassis(Module):
             timeout=self.timeout)
 
     def updated_position(self, msg: Tuple[float, float, float]) -> None:
+        if self.initial_position is None:
+            self.initial_position = (msg[0], msg[1])
         position = self.odom_msg.pose.pose.position
-        x, y = position.x, position.y = (msg[0], -msg[1])
+        x, y = position.x, position.y = (
+            msg[0] - self.initial_position[0],
+            -msg[1] + self.initial_position[1])
         if self.odom_twist_from_pose_diff:
             velocity = self.odom_msg.twist.twist.linear
             if self.position is None:
@@ -392,15 +398,17 @@ class Chassis(Module):
 
     def updated_attitude(self, msg: Tuple[float, float, float]) -> None:
         orientation = self.odom_msg.pose.pose.orientation
-        yaw = -rad(msg[0])
-        self.yaw = yaw
+        yaw = rad(msg[0])
+        if self.initial_yaw is None:
+            self.initial_yaw = yaw
+        self.yaw = yaw - self.initial_yaw
         if self.force_level:
             pitch = 0.0
             roll = 0.0
         else:
             pitch = -rad(msg[1])
             roll = rad(msg[2])
-        q = quaternion_from_euler(yaw=yaw, pitch=pitch, roll=roll)
+        q = quaternion_from_euler(yaw=self.yaw, pitch=pitch, roll=roll)
         (orientation.x, orientation.y, orientation.z, orientation.w) = (q.x, q.y, q.z, q.w)
 
     def updated_imu(self, msg: Tuple[float, float, float, float, float, float]) -> None:
