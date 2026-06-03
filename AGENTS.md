@@ -111,18 +111,37 @@ teleop_twist_keyboard 键位图:
    u=前+左  o=前+右  m=后+左  .=后+右
 ```
 
+## 未解决问题 — yaw 180° 翻转
+
+**现象：** 小车实际前进 → RViz 箭头后退；实际逆时针转 → 图中顺时针。建图方向也反。
+
+**已尝试的修复（均未解决）：**
+1. 去掉 `-rad()` 的取反 — 未解决
+2. `yaw = rad(msg[0]) + math.pi` — π 被 `initial_yaw` 抵消，朝向没变
+3. `initial_yaw` 存原始值（不带 π），`self.yaw` 保留 π — 仍未解决
+
+**推断：** 问题可能不在 yaw 数值，而在 SDK 坐标系 ↔ ROS ENU 的基础映射假设。建议通过读 `/odom` + `cmd_vel` 诊断确定 position.x 增减方向和 yaw 当前值，再决定是取反还是旋转。
+
+**下一步：** 不继续改 chassis.py。如需修复，建议新建 `ep_odom` 包做坐标修正节点，或重新审视 URDF 的 base_link 定义。
+
 ## Odom 修正（诊断后改动）
 
-### chassis.py 已修改 3 处
+### chassis.py 已修改 4 处
 
 | 函数 | 行号 | 修改 | 原因 |
 |------|------|------|------|
 | `updated_position` | 369-375 | 加入 `-yaw0` 坐标旋转 | EP 帧增量 → ROS 帧对齐启动朝向 |
 | `updated_velocity` | 398-402 | `linear.y = 0` | 差速车禁用横移 |
+| `updated_attitude` | 406 | `yaw = rad(msg[0]) + math.pi` + 分开存 `initial_yaw` | 尝试 180° 翻转（未解决） |
+| `updated_position` | 369 | `yaw0 = initial_yaw + math.pi` | 位置旋转同步翻转（同一次尝试） |
 | `updated_imu` | 424 | `gyro_z` 因子 `-1→+1` | 逆时针旋转时 gyro_z 为正 |
 
+### 未解决：yaw 180° 翻转
+- 小车前进 → RViz 箭头反方向移动，逆时针转 → 图中顺时针
+- 3 种修复都无效，问题不在 yaw 数值本身，需重新审视坐标系基础假设
+- 暂停修改 chassis.py
+
 ### 待验证
-- yaw 朝向偏差（可能需加 π 或 π/2 偏置）
 - 实车启动后 `odom.pose.position` 应归零
 
 ### SDK 原始数据结论（docs/ep_sdk_test_result_odom_diagnosis.md）

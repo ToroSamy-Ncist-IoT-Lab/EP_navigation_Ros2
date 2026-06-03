@@ -2,7 +2,7 @@
 
 基于 ROS 2 Humble 的 RoboMaster EP + RPLIDAR A2 建图、定位、导航工作空间。
 
-> **当前状态：** SDK 原始数据诊断完成，chassis.py 已完成 3 处 odom 修正（坐标旋转、linear.y 禁用、gyro_z 符号），待实车验证 yaw 朝向。
+> **当前状态：** SDK 原始数据诊断完成，chassis.py 已完成 4 处 odom 修正。**已知问题：odom→base_link 朝向 180° 翻转未解决** — 小车实际向前时 RViz 箭头向后，逆时针旋转显示为顺时针。暂不继续修改 chassis.py，需从根上重新分析坐标系假设。
 
 ## 系统需求
 
@@ -50,9 +50,35 @@
 map ──(slam_toolbox / Nav2)──► odom ──(chassis.py)──► base_link ──(静态)──► laser_link
 ```
 
+## 当前已知问题 — yaw 180° 翻转
+
+**现象：** 小车实际向前走时，RViz 中 odom→base_link 箭头向反方向移动；实际逆时针旋转时，图中显示顺时针。建图方向也相反。
+
+**已尝试的修复（均未解决）：**
+
+| 尝试 | 修改位置 | 结果 |
+|------|----------|------|
+| `yaw = rad(msg[0])`（去原版取反） | `updated_attitude` | 未解决 |
+| `yaw = rad(msg[0]) + math.pi` | `updated_attitude` | 位置翻转但朝向未变（π 被 initial_yaw 抵消） |
+| `initial_yaw` 存原始值 + `self.yaw` 保留 π | `updated_attitude` + `updated_position` | 仍无效 |
+
+**推断：** 问题可能不在 yaw 数值本身，而在坐标系基础假设（URDF 的 base_link 方向、或 SDK 坐标系与 ROS ENU 的映射关系）。**下一步应通过 `/odom` 回读 + `cmd_vel` 测试来定位。**
+
+**诊断命令：**
+```bash
+# 启动后读一次 odom
+ros2 topic echo /odom --once
+
+# 向前移动 0.1m
+ros2 topic pub -1 /cmd_vel geometry_msgs/Twist "{linear: {x: 0.1}}"
+
+# 再读一次 odom，看 position.x 增减
+ros2 topic echo /odom --once
+```
+
 ## Odom 修正说明
 
-基于 SDK 原始数据诊断（见 `docs/`），chassis.py 已实施 3 处修正：
+基于 SDK 原始数据诊断（见 `docs/`），chassis.py 已实施 4 处修正：
 
 | 函数 | 行号 | 修改 | 说明 |
 |------|------|------|------|

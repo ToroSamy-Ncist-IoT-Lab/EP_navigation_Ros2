@@ -366,7 +366,7 @@ class Chassis(Module):
         if self.initial_position is None:
             self.initial_position = (msg[0], msg[1])
         position = self.odom_msg.pose.pose.position
-        yaw0 = self.initial_yaw or 0.0
+        yaw0 = (self.initial_yaw or 0.0) + math.pi
         c = math.cos(-yaw0)
         s = math.sin(-yaw0)
         dx_ep = msg[0] - self.initial_position[0]
@@ -403,10 +403,10 @@ class Chassis(Module):
 
     def updated_attitude(self, msg: Tuple[float, float, float]) -> None:
         orientation = self.odom_msg.pose.pose.orientation
-        yaw = rad(msg[0])
+        yaw_raw = rad(msg[0])
         if self.initial_yaw is None:
-            self.initial_yaw = yaw
-        self.yaw = yaw - self.initial_yaw
+            self.initial_yaw = yaw_raw
+        self.yaw = yaw_raw + math.pi - self.initial_yaw
         if self.force_level:
             pitch = 0.0
             roll = 0.0
