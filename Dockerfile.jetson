@@ -1,0 +1,17 @@
+FROM ros2_robomaster_ep:latest
+RUN sed -i -e 's|http://ports.ubuntu.com|https://ports.ubuntu.com|g' /etc/apt/sources.list && \
+    apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=20 -o Acquire::https::Timeout=20 update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+      python3-serial \
+      ros-humble-rplidar-ros \
+      ros-humble-robot-localization \
+      ros-humble-slam-toolbox \
+      ros-humble-nav2-bringup \
+      ros-humble-teleop-twist-keyboard && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /opt/ep-navigation
+COPY src ./src
+RUN . /opt/ros/humble/setup.sh && colcon build --merge-install
+
+CMD ["bash"]

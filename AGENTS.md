@@ -148,7 +148,7 @@ teleop_twist_keyboard 键位图:
 - `sub_position` 在直行时 y 漂仅 1.8mm/6s，可靠
 - 后退时 y 漂由初始 yaw 偏角 +3.3° 导致，不是硬件问题
 - `sub_imu` gyro_z 逆时针为正，无符号错误
-- 不需要外置 IMU
+- 上述结果来自内置 SDK 的旧测试。使用 HI12 可对照外部姿态数据，启用方式见 README。
 
 ## 重要约定
 

@@ -5,6 +5,7 @@ from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, EnvironmentVariable
 from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
 
 
 def generate_launch_description():
@@ -23,6 +24,10 @@ def generate_launch_description():
             'chassis_rate', default_value='10',
             description='Chassis update rate: 0, 1, 5, 10, 20, 50'),
 
+        DeclareLaunchArgument('publish_odom_tf', default_value='true', choices=['true', 'false']),
+        DeclareLaunchArgument('odom_topic', default_value='odom'),
+        DeclareLaunchArgument('imu_topic', default_value='imu'),
+
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
                 os.path.join(get_package_share_directory('robomaster_description'),
@@ -35,11 +40,17 @@ def generate_launch_description():
             package='robomaster_ros',
             executable='robomaster_driver',
             name='robomaster',
+            remappings=[
+                ('odom', LaunchConfiguration('odom_topic')),
+                ('imu', LaunchConfiguration('imu_topic')),
+            ],
             output='screen',
             parameters=[{
                 'serial_number': LaunchConfiguration('serial_number'),
                 'conn_type': LaunchConfiguration('conn_type'),
                 'chassis.enabled': True,
+                'chassis.publish_odom_tf': ParameterValue(
+                    LaunchConfiguration('publish_odom_tf'), value_type=bool),
                 'chassis.rate': LaunchConfiguration('chassis_rate'),
                 'chassis.timeout': LaunchConfiguration('chassis_timeout'),
                 'chassis.status.rate': 1,

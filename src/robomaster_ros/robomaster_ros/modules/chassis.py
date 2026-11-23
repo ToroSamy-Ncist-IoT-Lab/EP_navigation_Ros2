@@ -114,6 +114,7 @@ class Chassis(Module):
             self.logger.info("[Chassis] Topic cmd_vel will control wheel speeds")
         else:
             self.logger.info("[Chassis] Topic cmd_vel will control chassis twist")
+        self.publish_odom_tf = node.declare_parameter('chassis.publish_odom_tf', True).value
         self.odom_frame = node.tf_frame('odom')
         self.base_link = node.tf_frame('base_link')
         desc = rcl_interfaces.msg.ParameterDescriptor(
@@ -433,6 +434,8 @@ class Chassis(Module):
         self.odom_pub.publish(self.odom_msg)
         self.imu_msg.header.stamp = stamp
         self.imu_pub.publish(self.imu_msg)
+        if not self.publish_odom_tf:
+            return
         position = self.odom_msg.pose.pose.position
         translation = self.transform_msg.transform.translation
         (translation.x, translation.y, translation.z) = (position.x, position.y, position.z)

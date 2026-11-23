@@ -6,7 +6,7 @@ package_name = 'ep_bringup'
 setup(
     name=package_name,
     version='0.1.0',
-    packages=[],
+    packages=[package_name],
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
@@ -21,6 +21,6 @@ setup(
     description='Launch files for RoboMaster EP navigation',
     license='MIT',
     entry_points={
-        'console_scripts': [],
+        'console_scripts': ['hi12_imu = ep_bringup.hi12_imu:main'],
     },
 )

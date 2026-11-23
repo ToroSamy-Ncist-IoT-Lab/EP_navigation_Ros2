@@ -186,6 +186,28 @@ teleop_twist_keyboard 键位图:
 | 路由器 | `conn_type:=sta` | 电脑和 EP 在同一局域网 |
 | 直连 | `conn_type:=ap` | 连接 EP 的 Wi-Fi 热点 |
 
+## HI12 外置 IMU 与二维里程计
+
+建图和导航入口共用底盘、二维雷达和里程计配置。默认从 EP 内置反馈发布 `/odom` 和 `odom → base_link`。启用 `use_hi12:=true` 后，驱动发布 `/odom/raw` 和 `/imu/ep`，HI12 发布 `/imu/hi12`，EKF 输出 `/odom` 并负责 `odom → base_link`。EKF 使用车体坐标系的底盘速度、HI12 的相对航向和 Z 轴角速度。接入前核对 HI12 安装方向，`hi12_yaw` 可设置模块相对车体的安装角，单位为弧度。
+
+在 Jetson 上用 `/dev/serial/by-id/` 核对 HI12 和雷达各自对应的串口，再把两台设备分别映射进容器。`lidar_port`、`lidar_baud`、`hi12_port`、`hi12_baud` 可从 launch 传入。两者解析到同一个串口时，HI12 模式会拒绝启动。
+
+只读检查 HI12 可以单独运行 `ros2 run ep_bringup hi12_imu --ros-args -p port:=/dev/hi12_imu`，再用 `ros2 topic echo /imu/hi12 --once` 查看消息。实车上继续核对直行方向和原地旋转方向，并检查 TF 只有一个 `odom → base_link` 发布者。
+
+## Jetson 容器构建
+
+`Dockerfile.jetson` 以 Jetson 上的 `ros2_robomaster_ep:latest` 镜像为基础，安装 HI12、二维雷达、SLAM Toolbox 和 Nav2 依赖，并在 `/opt/ep-navigation` 编译本仓库。构建后加载 `/opt/ep-navigation/install/setup.bash` 使用已安装的功能包。
+
+```bash
+docker build -f Dockerfile.jetson -t ep_navigation_ros2:hi12 .
+```
+
+启动入口和部署注意事项：
+
+- `mapping.launch.py` 启动二维 SLAM。`rviz` 和 `teleop` 默认关闭，需要时按参数开启。
+- `navigation.launch.py` 需要显式传入 `map:=<地图 YAML 路径>`，同时加载地图服务器、AMCL 和 Nav2。生命周期默认不自动激活，配置核对完成后再选择 `autostart:=true`。
+- 单机调试先确认现有 EP 驱动的运行状态。每台小车同时由一个驱动进程连接。Foxglove 可用于查看话题和 TF。
+
 ## License
 
 MIT
