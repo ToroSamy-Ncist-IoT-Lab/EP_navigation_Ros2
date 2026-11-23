@@ -5,7 +5,7 @@
 测试文件：
 
 ```text
-F:/wechat/xwechat_files/wxid_2rrsagwnm33y22_006b/temp/RWTemp/2026-06/e341d466b6aaef2f2cba5569da0a3dcd/test_results.md
+Git 历史中的原始记录：eec1ee3:tmp/test_odom/test_results.md
 ```
 
 ## 1. 总体结论

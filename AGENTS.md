@@ -165,7 +165,7 @@ teleop_twist_keyboard 键位图:
 ## 已知问题
 
 **Q: SD原始数据是否存在严重漂移？**
-A: 不存。 test_results.md 确认直行 y 漂仅 1.8mm，前进/后退/旋转自洽。诊断见 docs/。
+A: 不存。 Git 历史中的 eec1ee3:tmp/test_odom/test_results.md 记录显示直行 y 漂仅 1.8mm，前进/后退/旋转自洽。诊断见 docs/。
 
 **Q: SDK 未安装**
 ```bash
