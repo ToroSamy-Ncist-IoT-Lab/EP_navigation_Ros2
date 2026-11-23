@@ -44,7 +44,6 @@ bt_navigator:
     global_frame: map
     robot_base_frame: base_link
     odom_topic: /odom
-    default_bt_xml_filename: "navigate_w_replanning_and_recovery.xml"
     plugin_lib_names:
     - nav2_compute_path_to_pose_action_bt_node
     - nav2_follow_path_action_bt_node
@@ -86,7 +85,7 @@ controller_server:
     min_theta_velocity_threshold: 0.001
     failure_tolerance: 0.3
     progress_checker_plugin: "progress_checker"
-    goal_checker_plugin: "goal_checker"
+    goal_checker_plugins: ["goal_checker"]
     controller_plugins: ["FollowPath"]
 
     progress_checker:
@@ -131,8 +130,8 @@ local_costmap:
       global_frame: odom
       robot_base_frame: base_link
       resolution: 0.05
-      width: 3.0
-      height: 3.0
+      width: 3
+      height: 3
       rolling_window: true
       track_unknown_space: true
       plugins: ["obstacle_layer", "inflation_layer"]
@@ -199,16 +198,30 @@ planner_server_rclcpp_node:
   ros__parameters:
     use_sim_time: False
 
-recoveries_server:
+behavior_server:
   ros__parameters:
     use_sim_time: False
-    recovery_plugins: ["spin", "backup", "wait"]
+    global_frame: odom
+    robot_base_frame: base_link
+    max_rotational_vel: 0.5
+    behavior_plugins: ["spin", "backup", "wait"]
     spin:
-      plugin: "nav2_recoveries::Spin"
+      plugin: "nav2_behaviors/Spin"
     backup:
-      plugin: "nav2_recoveries::BackUp"
+      plugin: "nav2_behaviors/BackUp"
     wait:
-      plugin: "nav2_recoveries::Wait"
+      plugin: "nav2_behaviors/Wait"
+
+velocity_smoother:
+  ros__parameters:
+    use_sim_time: False
+    feedback: "OPEN_LOOP"
+    max_velocity: [0.2, 0.0, 0.5]
+    min_velocity: [-0.2, 0.0, -0.5]
+    max_accel: [0.2, 0.0, 0.8]
+    max_decel: [-0.3, 0.0, -0.8]
+    odom_topic: /odom
+    velocity_timeout: 0.5
 
 robot_state_publisher:
   ros__parameters:
