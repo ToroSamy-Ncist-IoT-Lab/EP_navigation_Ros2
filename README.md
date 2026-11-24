@@ -78,7 +78,7 @@ ros2 topic echo /odom --once
 
 ## Odom 修正说明
 
-基于 SDK 原始数据诊断（见 `docs/`），chassis.py 已实施 4 处修正：
+基于 SDK 原始数据诊断，chassis.py 已实施 4 处修正。诊断文档可从 Git 历史 eec1ee3:docs/ 追溯。
 
 | 函数 | 行号 | 修改 | 说明 |
 |------|------|------|------|

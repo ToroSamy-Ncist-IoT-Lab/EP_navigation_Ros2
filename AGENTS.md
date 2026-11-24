@@ -144,7 +144,7 @@ teleop_twist_keyboard 键位图:
 ### 待验证
 - 实车启动后 `odom.pose.position` 应归零
 
-### SDK 原始数据结论（docs/ep_sdk_test_result_odom_diagnosis.md）
+### SDK 原始数据结论（Git 历史 eec1ee3:docs/ep_sdk_test_result_odom_diagnosis.md）
 - `sub_position` 在直行时 y 漂仅 1.8mm/6s，可靠
 - 后退时 y 漂由初始 yaw 偏角 +3.3° 导致，不是硬件问题
 - `sub_imu` gyro_z 逆时针为正，无符号错误
@@ -165,7 +165,7 @@ teleop_twist_keyboard 键位图:
 ## 已知问题
 
 **Q: SD原始数据是否存在严重漂移？**
-A: 不存。 test_results.md 确认直行 y 漂仅 1.8mm，前进/后退/旋转自洽。诊断见 docs/。
+A: 不存。 Git 历史 eec1ee3:tmp/test_odom/test_results.md 记录显示直行 y 漂仅 1.8mm，前进/后退/旋转自洽。诊断见 Git 历史 eec1ee3:docs/。
 
 **Q: SDK 未安装**
 ```bash
