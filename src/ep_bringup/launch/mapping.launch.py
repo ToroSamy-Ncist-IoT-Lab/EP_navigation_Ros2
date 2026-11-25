@@ -11,7 +11,7 @@ from ep_bringup.hardware import hardware_description, rviz_node
 
 def generate_launch_description():
     description = hardware_description()
-    description.add_action(DeclareLaunchArgument('rviz', default_value='false'))
+    description.add_action(DeclareLaunchArgument('rviz', default_value='true'))
     description.add_action(DeclareLaunchArgument('teleop', default_value='false'))
     description.add_action(Node(
         package='slam_toolbox',

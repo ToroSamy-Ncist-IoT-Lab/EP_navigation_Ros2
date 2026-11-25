@@ -4,6 +4,8 @@
 
 > **当前状态：** SDK 原始数据诊断完成，chassis.py 已完成 4 处 odom 修正。**已知问题：odom→base_link 朝向 180° 翻转未解决** — 小车实际向前时 RViz 箭头向后，逆时针旋转显示为顺时针。暂不继续修改 chassis.py，需从根上重新分析坐标系假设。
 
+操作手册：[EP 小车 ROS 2 远程操控与 RViz](docs/usage_guide.md)
+
 ## 系统需求
 
 | 项目 | 要求 |
@@ -43,6 +45,11 @@
 | `ep_description` | ament_python | 静态 TF：base_link → laser_link |
 | `ep_navigation` | ament_python | slam_toolbox + Nav2 参数配置 |
 | `ep_bringup` | ament_python | 一键启动 launch 文件 |
+
+## 参考项目
+
+- [jeguzzi/robomaster_ros](https://github.com/jeguzzi/robomaster_ros)：RoboMaster EP 和 S1 的 ROS 2 驱动项目。
+- 本仓库包含用于 EP 底盘的 robomaster_ros 功能包；具体修改和配置以本仓库代码为准。
 
 ## TF 坐标系
 
@@ -188,7 +195,7 @@ teleop_twist_keyboard 键位图:
 
 ## HI12 外置 IMU 与二维里程计
 
-建图和导航入口共用底盘、二维雷达和里程计配置。默认从 EP 内置反馈发布 `/odom` 和 `odom → base_link`。启用 `use_hi12:=true` 后，驱动发布 `/odom/raw` 和 `/imu/ep`，HI12 发布 `/imu/hi12`，EKF 输出 `/odom` 并负责 `odom → base_link`。EKF 使用车体坐标系的底盘速度、HI12 的相对航向和 Z 轴角速度。接入前核对 HI12 安装方向，`hi12_yaw` 可设置模块相对车体的安装角，单位为弧度。
+建图和导航入口共用底盘、二维雷达和里程计配置。默认启用 HI12 和 EKF；设置 `use_hi12:=false` 可改用 EP 内置反馈发布 `/odom` 和 `odom → base_link`。启用 HI12 时，驱动发布 `/odom/raw` 和 `/imu/ep`，HI12 发布 `/imu/hi12`，EKF 输出 `/odom` 并负责 `odom → base_link`。EKF 使用车体坐标系的底盘速度、HI12 的相对航向和 Z 轴角速度。接入前核对 HI12 安装方向，`hi12_yaw` 可设置模块相对车体的安装角，单位为弧度。
 
 在 Jetson 上用 `/dev/serial/by-id/` 核对 HI12 和雷达各自对应的串口，再把两台设备分别映射进容器。`lidar_port`、`lidar_baud`、`hi12_port`、`hi12_baud` 可从 launch 传入。两者解析到同一个串口时，HI12 模式会拒绝启动。
 
@@ -204,7 +211,7 @@ docker build -f Dockerfile.jetson -t ep_navigation_ros2:hi12 .
 
 启动入口和部署注意事项：
 
-- `mapping.launch.py` 启动二维 SLAM。`rviz` 和 `teleop` 默认关闭，需要时按参数开启。
+- `mapping.launch.py` 启动二维 SLAM 和 RViz2；`teleop` 默认关闭。无图形环境可使用 `rviz:=false`。
 - `navigation.launch.py` 需要显式传入 `map:=<地图 YAML 路径>`，同时加载地图服务器、AMCL 和 Nav2。生命周期默认不自动激活，配置核对完成后再选择 `autostart:=true`。
 - 单机调试先确认现有 EP 驱动的运行状态。每台小车同时由一个驱动进程连接。Foxglove 可用于查看话题和 TF。
 

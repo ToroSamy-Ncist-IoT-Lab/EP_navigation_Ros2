@@ -19,7 +19,7 @@ def include_launch(package, filename, **arguments):
 
 def hardware_description():
     return LaunchDescription([
-        DeclareLaunchArgument('use_hi12', default_value='false', choices=['true', 'false']),
+        DeclareLaunchArgument('use_hi12', default_value='true', choices=['true', 'false']),
         DeclareLaunchArgument('hi12_port', default_value='/dev/hi12_imu'),
         DeclareLaunchArgument('hi12_baud', default_value='115200'),
         DeclareLaunchArgument('hi12_yaw', default_value='0.0',
