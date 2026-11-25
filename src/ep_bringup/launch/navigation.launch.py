@@ -16,6 +16,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         map_arg,
+        DeclareLaunchArgument('autostart', default_value='false'),
 
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([
@@ -47,10 +48,13 @@ def generate_launch_description():
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource([
                 get_package_share_directory('nav2_bringup'),
-                '/launch/navigation_launch.py',
+                '/launch/bringup_launch.py',
             ]),
             launch_arguments={
                 'use_sim_time': 'False',
+                'slam': 'False',
+                'use_composition': 'False',
+                'autostart': LaunchConfiguration('autostart'),
                 'params_file': os.path.join(
                     get_package_share_directory('ep_navigation'),
                     'config', 'nav2_params.yaml'),

@@ -44,6 +44,12 @@
 | `ep_navigation` | ament_python | slam_toolbox + Nav2 参数配置 |
 | `ep_bringup` | ament_python | 一键启动 launch 文件 |
 
+建图默认启动 RViz2、关闭内置键盘窗口；可使用 `rviz:=false` 关闭画面，并在另一个终端运行键盘控制。导航默认 `autostart:=false`，需完成检查后再启用。
+
+## 参考项目
+
+- [jeguzzi/robomaster_ros](https://github.com/jeguzzi/robomaster_ros)：RoboMaster EP 和 S1 的 ROS 2 驱动项目。
+
 ## TF 坐标系
 
 ```
@@ -154,7 +160,7 @@ source ~/R_v1.1/install/setup.bash
 | 键盘控制（路由器） | `ros2 launch ep_bringup teleop.launch.py conn_type:=sta` | 局域网连接 |
 | 键盘控制（直连） | `ros2 launch ep_bringup teleop.launch.py conn_type:=ap` | Wi-Fi 热点直连 |
 | 建图 | `ros2 launch ep_bringup mapping.launch.py` | slam_toolbox 实时建图 |
-| 保存地图 | `ros2 run nav2_map_server map_saver -f ~/R_v1.1/maps/xxx` | 建图完成后保存 |
+| 保存地图 | `ros2 run nav2_map_server map_saver_cli -f ~/R_v1.1/maps/xxx` | 建图完成后保存 |
 | 导航 | `ros2 launch ep_bringup navigation.launch.py map:=~/R_v1.1/maps/xxx.yaml` | 加载地图后导航 |
 
 ## 键盘控制
