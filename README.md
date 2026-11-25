@@ -2,7 +2,13 @@
 
 基于 ROS 2 Humble 的 RoboMaster EP + RPLIDAR A2 建图、定位、导航工作空间。
 
-> **当前状态：** SDK 原始数据诊断完成，chassis.py 已完成 4 处 odom 修正。**已知问题：odom→base_link 朝向 180° 翻转未解决** — 小车实际向前时 RViz 箭头向后，逆时针旋转显示为顺时针。暂不继续修改 chassis.py，需从根上重新分析坐标系假设。
+> **当前状态：** main 已同步 hi12-ros2 中通过操作员方向测试的底盘反馈修正：移除额外 180° 偏置、统一初始位姿和航向方向。本分支使用 EP 内置反馈，不启动外置 HI12 或 EKF；main 的完整部署与建图质量尚待单独验收。
+
+## Jetson 容器构建
+
+Jetson 宿主机使用 Ubuntu 20.04 和 ROS 1 Noetic，ROS 2 Humble 项目在 Ubuntu 22.04 容器中运行。目前小车运行的容器基于 hi12-ros2 部署版本；本地 main 的完整容器构建与部署尚待验收。
+
+操作手册：[EP 小车 ROS 2 使用指南](docs/usage_guide.md)
 
 ## 系统需求
 
@@ -56,43 +62,9 @@
 map ──(slam_toolbox / Nav2)──► odom ──(chassis.py)──► base_link ──(静态)──► laser_link
 ```
 
-## 当前已知问题 — yaw 180° 翻转
+## 里程计方向状态
 
-**现象：** 小车实际向前走时，RViz 中 odom→base_link 箭头向反方向移动；实际逆时针旋转时，图中显示顺时针。建图方向也相反。
-
-**已尝试的修复（均未解决）：**
-
-| 尝试 | 修改位置 | 结果 |
-|------|----------|------|
-| `yaw = rad(msg[0])`（去原版取反） | `updated_attitude` | 未解决 |
-| `yaw = rad(msg[0]) + math.pi` | `updated_attitude` | 位置翻转但朝向未变（π 被 initial_yaw 抵消） |
-| `initial_yaw` 存原始值 + `self.yaw` 保留 π | `updated_attitude` + `updated_position` | 仍无效 |
-
-**推断：** 问题可能不在 yaw 数值本身，而在坐标系基础假设（URDF 的 base_link 方向、或 SDK 坐标系与 ROS ENU 的映射关系）。**下一步应通过 `/odom` 回读 + `cmd_vel` 测试来定位。**
-
-**诊断命令：**
-```bash
-# 启动后读一次 odom
-ros2 topic echo /odom --once
-
-# 向前移动 0.1m
-ros2 topic pub -1 /cmd_vel geometry_msgs/Twist "{linear: {x: 0.1}}"
-
-# 再读一次 odom，看 position.x 增减
-ros2 topic echo /odom --once
-```
-
-## Odom 修正说明
-
-基于 SDK 原始数据诊断，chassis.py 已实施 4 处修正。诊断文档可从 Git 历史 eec1ee3:docs/ 追溯。
-
-| 函数 | 行号 | 修改 | 说明 |
-|------|------|------|------|
-| `updated_position` | 369-375 | 加入 `-yaw0` 坐标旋转 | EP 帧增量旋转到 ROS odom 帧 |
-| `updated_velocity` | 398-402 | `linear.y = 0` | 差速模式禁用横移 |
-| `updated_imu` | 424 | `gyro_z` 因子 `-1→+1` | 与 yaw 符号一致（逆时针为正） |
-
-**待验证：** yaw 朝向偏差（可能差 90° 或 180°），需实车测试后决定是否加偏置。
+之前出现过前进及转向方向显示相反。方向修正在 hi12-ros2 的 use_hi12:=false 模式下得到操作员反馈正常，现已同步到本地 main；main 单独部署后的方向、地图质量和保存流程仍需验收。底盘断连和 TF 稳定性也需继续检查。
 
 ## 快速开始
 
@@ -160,8 +132,35 @@ source ~/R_v1.1/install/setup.bash
 | 键盘控制（路由器） | `ros2 launch ep_bringup teleop.launch.py conn_type:=sta` | 局域网连接 |
 | 键盘控制（直连） | `ros2 launch ep_bringup teleop.launch.py conn_type:=ap` | Wi-Fi 热点直连 |
 | 建图 | `ros2 launch ep_bringup mapping.launch.py` | slam_toolbox 实时建图 |
-| 保存地图 | `ros2 run nav2_map_server map_saver_cli -f ~/R_v1.1/maps/xxx` | 建图完成后保存 |
+| 保存地图 | `ros2 run ep_navigation save_map [名称]` | 建图完成后保存 |
 | 导航 | `ros2 launch ep_bringup navigation.launch.py map:=~/R_v1.1/maps/xxx.yaml` | 加载地图后导航 |
+
+## 地图保存与导航
+
+`maps/` 保存运行数据，不纳入 Git。小车上宿主机目录 `~/EP_navigation_Ros2/maps` 挂载到容器 `/maps`，二维地图保存在 `maps/2d/<地图名>/`。运行前需确保建图运行中且 /map 正常发布。
+
+在 ROS 2 容器内（先加载环境）：
+
+```bash
+ros2 run ep_navigation save_map 教室
+ros2 run ep_navigation save_map
+```
+
+不填名称时按北京时间 `年-月-日-时-分` 命名；同名地图会自动追加中文括号序号（如 教室（1）、教室（2）），原地图不会覆盖。每张地图包含同名 YAML 和 PGM。在 Jetson 宿主机上也可以使用兼容入口：
+
+```bash
+bash ~/EP_navigation_Ros2/scripts/save_map.sh 教室
+bash ~/EP_navigation_Ros2/scripts/save_map.sh
+```
+
+例如地图保存在宿主机 `~/EP_navigation_Ros2/maps/2d/教室/`，则容器中对应 `/maps/2d/教室/`。导航前先停止建图并验证地图及定位：
+
+```bash
+ros2 launch ep_bringup navigation.launch.py map:=/maps/2d/教室/教室.yaml autostart:=true
+```
+
+切换运行版本或重建容器时，须确保 maps 目录仍挂载；旧地图目录 ~/ep_maps 不会自动迁移。
+
 
 ## 键盘控制
 
