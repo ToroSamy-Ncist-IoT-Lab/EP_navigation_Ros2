@@ -28,6 +28,19 @@ def generate_launch_description():
         DeclareLaunchArgument('odom_topic', default_value='odom'),
         DeclareLaunchArgument('imu_topic', default_value='imu'),
 
+        DeclareLaunchArgument('arm_enabled', default_value='false', choices=['true', 'false']),
+        DeclareLaunchArgument('arm_rate', default_value='10'),
+        DeclareLaunchArgument('gripper_enabled', default_value='false', choices=['true', 'false']),
+        DeclareLaunchArgument('open_gripper', default_value='false', choices=['true', 'false']),
+        DeclareLaunchArgument('camera_enabled', default_value='false', choices=['true', 'false']),
+        DeclareLaunchArgument('video_resolution', default_value='360', choices=['360', '540', '720']),
+        DeclareLaunchArgument('video_raw', default_value='2',
+                              description='Raw image topic mode: OFF=0, ON=1, ON_DEMAND=2, DISABLED=-1'),
+        DeclareLaunchArgument('video_h264', default_value='0',
+                              description='H264 topic mode: OFF=0, ON=1, ON_DEMAND=2, DISABLED=-1'),
+        DeclareLaunchArgument('video_rate', default_value='-1.0',
+                              description='Max camera FPS (<0 means no throttling)'),
+
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(
                 os.path.join(get_package_share_directory('robomaster_description'),
@@ -61,6 +74,34 @@ def generate_launch_description():
                 'battery.enabled': True,
                 'armor.enabled': True,
                 'armor.sensitivity': 0.5,
+                'arm.enabled': ParameterValue(
+                    LaunchConfiguration('arm_enabled'), value_type=bool),
+                'arm.rate': ParameterValue(
+                    LaunchConfiguration('arm_rate'), value_type=int),
+                'gripper.enabled': ParameterValue(
+                    LaunchConfiguration('gripper_enabled'), value_type=bool),
+                'gripper.open': ParameterValue(
+                    LaunchConfiguration('open_gripper'), value_type=bool),
+                'camera.enabled': ParameterValue(
+                    LaunchConfiguration('camera_enabled'), value_type=bool),
+                'camera.video.raw': ParameterValue(
+                    LaunchConfiguration('video_raw'), value_type=int),
+                'camera.video.h264': ParameterValue(
+                    LaunchConfiguration('video_h264'), value_type=int),
+                'camera.video.ffmpeg': -1,
+                'camera.video.resolution': ParameterValue(
+                    LaunchConfiguration('video_resolution'), value_type=int),
+                'camera.video.rate': ParameterValue(
+                    LaunchConfiguration('video_rate'), value_type=float),
+                'camera.video.calibration_file': ParameterValue([
+                    os.path.join(get_package_share_directory('robomaster_ros'),
+                                 'config', 'rm_camera_calibration_'),
+                    LaunchConfiguration('video_resolution'),
+                    '.yaml',
+                ], value_type=str),
+                'camera.audio.raw': 0,
+                'camera.audio.opus': 0,
+                'camera.audio.level': 0,
             }],
         ),
     ])

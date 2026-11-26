@@ -13,6 +13,7 @@ setup(
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/launch', glob.glob('launch/*.launch')),
         ('share/' + package_name + '/launch', glob.glob('launch/*.launch.py')),
+        ('share/' + package_name + '/config', glob.glob('config/*.yaml')),
     ],
     install_requires=['setuptools', 'numpy', 'numpy-quaternion', 'pyyaml', 'robomaster'],
     zip_safe=True,
