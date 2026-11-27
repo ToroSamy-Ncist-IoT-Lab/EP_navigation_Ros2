@@ -50,6 +50,18 @@ def generate_launch_description():
         ),
 
         Node(
+            package='joint_state_publisher',
+            executable='joint_state_publisher',
+            name='joint_state_publisher',
+            output='screen',
+            parameters=[{
+                'source_list': ['joint_states_p'],
+                'rate': 10.0,
+            }],
+            arguments=['--ros-args', '--log-level', 'warn'],
+        ),
+
+        Node(
             package='robomaster_ros',
             executable='robomaster_driver',
             name='robomaster',

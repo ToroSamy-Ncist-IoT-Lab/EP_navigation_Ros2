@@ -21,6 +21,9 @@ setup(
     description='Launch files for RoboMaster EP navigation',
     license='MIT',
     entry_points={
-        'console_scripts': ['hi12_imu = ep_bringup.hi12_imu:main'],
+        'console_scripts': [
+            'hi12_imu = ep_bringup.hi12_imu:main',
+            'arm_camera_tool = ep_bringup.arm_camera_tool:main',
+        ],
     },
 )

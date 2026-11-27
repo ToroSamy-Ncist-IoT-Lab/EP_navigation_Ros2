@@ -397,7 +397,7 @@ class Camera(robomaster.media.LiveView, Module):  # type: ignore
             value = ActiveMode(value)
         except ValueError:
             return
-        if value != ActiveMode.OFF and not FFMPEG_AVAILABLE:
+        if value not in (ActiveMode.OFF, ActiveMode.DISABLED) and not FFMPEG_AVAILABLE:
             self.logger.warning(
                 "[Camera] FFmpeg not available: install PyAV and ffmpeg_image_transport_msgs"
             )
@@ -437,25 +437,60 @@ class Camera(robomaster.media.LiveView, Module):  # type: ignore
         return r
 
     def stop_video_stream(self) -> bool:
-        if not self.video_is_active:
+        if not self.video_is_active and not self._video_streaming:
             return True
-        # self.logger.info("will stop_video_stream")
+        self._video_streaming = False
         r = super().stop_video_stream()
-        if r:
+        try:
             self._message_queue.queue.clear()
-            self._video_publisher_thread.join()
+        except Exception:
+            pass
+        pub_thread = getattr(self, '_video_publisher_thread', None)
+        if pub_thread is not None and pub_thread.is_alive():
+            pub_thread.join(timeout=2.0)
         return r
 
-    # TODO(jerome) Check because we are overwriting a method here!
-    # def stop(self) -> None:
-    #     self.logger.info("[Camera] Will stop")
-    #     if self.video:
-    #         self.stop_video_stream()
-    #         self.api.stop_video_stream()
-    #     if self.audio:
-    #         self.stop_audio_stream()
-    #         self.api.stop_audio_stream()
-    #     self.logger.info("[Camera] Has stopped")
+    def abort(self) -> None:
+        self._video_streaming = False
+        self._audio_streaming = False
+
+    def stop(self) -> None:
+        if getattr(self, '_stopped', False):
+            return
+        self._stopped = True
+        try:
+            self.logger.info("[Camera] Will stop")
+        except Exception:
+            pass
+        timer = getattr(self, 'count_subs_timer', None)
+        self.count_subs_timer = None
+        if timer is not None:
+            try:
+                timer.cancel()
+            except Exception:
+                pass
+        self._video_streaming = False
+        self._audio_streaming = False
+        if getattr(self, 'video_is_active', False):
+            try:
+                self.stop_video()
+            except Exception as e:
+                try:
+                    self.logger.warning(f"[Camera] Error stopping video stream: {e}")
+                except Exception:
+                    pass
+        if getattr(self, 'audio_is_active', False):
+            try:
+                self.stop_audio()
+            except Exception as e:
+                try:
+                    self.logger.warning(f"[Camera] Error stopping audio stream: {e}")
+                except Exception:
+                    pass
+        try:
+            self.logger.info("[Camera] Has stopped")
+        except Exception:
+            pass
 
     # TODO(jerome): maybe better a parameter??
     def has_updated_camera_config(
@@ -470,8 +505,10 @@ class Camera(robomaster.media.LiveView, Module):  # type: ignore
         if FFMPEG_AVAILABLE:
             parser = H264Parser()
         while self._video_streaming:
-            # blocking
-            data = self._video_stream_conn._sock_queue.get()
+            try:
+                data = self._video_stream_conn._sock_queue.get(timeout=0.5)
+            except queue.Empty:
+                continue
             while True:
                 # empty the queue
                 try:
@@ -643,11 +680,11 @@ class Camera(robomaster.media.LiveView, Module):  # type: ignore
         return r
 
     def stop_audio_stream(self) -> bool:
+        self._audio_streaming = False
         r = super().stop_audio_stream()
-        if r:
-            self._audio_publisher_thread = threading.Thread(
-                target=self._audio_publisher_task)
-            self._audio_publisher_thread.start()
+        pub_thread = getattr(self, '_audio_publisher_thread', None)
+        if pub_thread is not None and pub_thread.is_alive():
+            pub_thread.join(timeout=2.0)
         return r
 
     def _audio_decoder_task(self) -> None:

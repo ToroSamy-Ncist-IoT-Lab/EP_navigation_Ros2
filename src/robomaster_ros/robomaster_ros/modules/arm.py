@@ -93,6 +93,8 @@ class Arm(Module):
             cancel_callback=self.cancel_move_arm_callback, callback_group=cbg)
         # self.goal_handle: Optional[rclpy.action.server.ServerGoalHandle] = None
         self.action: Optional[robomaster.action.Action] = None
+        self.x: Optional[int] = None
+        self.z: Optional[int] = None
         node.create_subscription(geometry_msgs.msg.Vector3, 'cmd_arm',
                                  self.has_received_velocity_command, 10)
         node.create_subscription(geometry_msgs.msg.Point, 'target_arm_position',
@@ -100,6 +102,9 @@ class Arm(Module):
         node.add_on_set_parameters_callback(self.set_params_cb)
 
     def has_received_velocity_command(self, msg: geometry_msgs.msg.Vector3) -> None:
+        if self.x is None or self.z is None:
+            self.logger.warning('[Arm] Ignoring cmd_arm before initial arm position is received')
+            return
         # TODO(Jerome): verify that we need to set a new id each time
         # -> no, it seems id = 1 is fine (0 is not)
         # Testing with the joypad, it seems the behavior is not very robust
